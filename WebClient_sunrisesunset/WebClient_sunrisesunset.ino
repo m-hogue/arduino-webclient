@@ -30,24 +30,25 @@ EthernetClient client;
 #define SDCARD_CS 4
 
 char sunriseSunsetServer[] = "http://api.sunrise-sunset.org";
+IPAddress sunriseSunsetIP(104,131,2,15);
+char google[] = "www.google.com";
+IPAddress googleIP(216,58,216,110); // Google
 
 /**
  * Method to fetch sunrise and sunset from server
  */
 void getSunriseAndSunset() {
-  if(client.connect(sunriseSunsetServer, 80)) {
+  if(client.connect(sunriseSunsetIP, 80)) {
     Serial.println("connected to sunriseSunset server");
     // Make a HTTP request:
     client.println("GET /json?lat=40.547554&lng=-89.614399&date=today HTTP/1.1");
-//    client.println("Host: api.sunrise-sunset.org");
-//    client.println("Connection: keep-alive");
-//    client.println("Accept: text/html");
-//    client.println("User-Agent: Arduino Mega2560");
+    client.println("Host: api.sunrise-sunset.org");
+    client.println("Connection: close");
+    client.println("User-Agent: Arduino Mega2560");
     client.println();
   } else {
     Serial.println("Connection failed");
   }
-  delay(2000);
 }
 
 void setup() {
@@ -71,7 +72,7 @@ void setup() {
   Ethernet.begin(mac, ip);
 
   // give time for ethernet shield to initialize.
-  delay(1000);
+  delay(4000);
   Serial.println("ok.");
   Serial.println("connecting...");
 
@@ -84,7 +85,7 @@ void setup() {
   getSunriseAndSunset();
 
 //  // if you get a connection, report back via serial:
-//  if (client.connect(sunriseSunsetServer, 80)) {
+//  if (client.connect(googleIP, 80)) {
 //    Serial.println("connected");
 //    // Make a HTTP request:
 //    client.println("GET /search?q=arduino HTTP/1.0");
@@ -113,8 +114,7 @@ void loop()
     client.stop();
 
     // do nothing forevermore:
-    for(;;)
-      ;
+    while(true);
   }
 }
 
