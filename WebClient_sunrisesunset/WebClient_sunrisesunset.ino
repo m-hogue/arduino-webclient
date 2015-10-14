@@ -171,6 +171,7 @@ void setup() {
 
 void loop()
 {
+  // this array will hold the requested sunrise/sunset times.
   String results[2];
   getSunriseSunsetHTTP(results);
   
