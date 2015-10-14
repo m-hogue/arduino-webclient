@@ -66,8 +66,8 @@ void getSunriseSunsetHTTP(String results[]) {
       // TODO: should check here that response code is 200, which means "OK"
       err = http.skipResponseHeaders();
       if(err >= 0) {
-        // this particular web service doesn't return a Content-Length header, so it's part of the body.
-        // That means that we'll need to skip to the start of the json response to start parsing.
+        // this particular web service doesn't return a Content-Length header.
+        // That means that we'll need to skip to the start of the json response to start parsing, handing the length dynamically.
         // I've left the below commented out since it's really useless here.
 //        int bodyLen = http.contentLength();
 //        Serial.print("content length: ");
