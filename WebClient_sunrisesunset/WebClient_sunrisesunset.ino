@@ -15,7 +15,15 @@
 
 #include <SPI.h>
 #include <SD.h>
+// ethernet library from https://github.com/Seeed-Studio/Ethernet_Shield_W5200
 #include <EthernetV2_0.h>
+// httpclient library from https://github.com/amcewen/HttpClient
+#include <HttpClient.h>
+
+// Number of milliseconds to wait without receiving any data before we give up
+const int kNetworkTimeout = 30*1000;
+// Number of milliseconds to wait if no data is available before trying again
+const int kNetworkDelay = 1000;
 
 // Enter a MAC address for your controller below.
 // Newer Ethernet shields have a MAC address printed on a sticker on the shield
@@ -26,31 +34,76 @@ IPAddress ip(10,10,10,198); // local IP
 // with the IP address and port of the server 
 // that you want to connect to (port 80 is default for HTTP):
 EthernetClient client;
+HttpClient http(client);
 #define W5200_CS  10
 #define SDCARD_CS 4
 
-char sunriseSunsetServer[] = "http://api.sunrise-sunset.org";
+// parameters needed to fetch sunrise and sunset time RESTfully.
+const char sunriseSunsetServer[] = "api.sunrise-sunset.org";
+const char sunriseSunsetPath[] = "/json?lat=40.547554&lng=-89.614399&date=today";
 IPAddress sunriseSunsetIP(104,131,2,15);
-char google[] = "www.google.com";
-IPAddress googleIP(216,58,216,110); // Google
+
 
 /**
- * Method to fetch sunrise and sunset from server
+ * Method to fetch sunrise and sunset time
  */
-void getSunriseAndSunset() {
-  if(client.connect(sunriseSunsetIP, 80)) {
-    Serial.println("connected to sunriseSunset server");
-    // Make a HTTP request:
-    client.println("GET /json?lat=40.547554&lng=-89.614399&date=today HTTP/1.1");
-    client.println("Host: api.sunrise-sunset.org");
-    client.println("Connection: close");
-    client.println("User-Agent: Arduino Mega2560");
-    client.println();
+void getSunriseSunsetHTTP() {
+  int err = 0;
+  err = http.get(sunriseSunsetIP, sunriseSunsetServer, sunriseSunsetPath);
+  if(err == 0) {
+    Serial.println("connection ok");
+    err = http.responseStatusCode();
+
+    if(err >= 0) {
+      Serial.print("response status code: ");
+      Serial.println(err);
+
+      // TODO: should check here that response code is 200, which means "OK"
+      err = http.skipResponseHeaders();
+      if(err >= 0) {
+        int bodyLen = http.contentLength();
+        Serial.print("content length: ");
+        Serial.println(bodyLen);
+        Serial.println("Body returned:");
+
+        unsigned int timeoutStart = millis();
+        char c;
+        // while we're connected to the host and we've not yet hit the timeout, process response.
+        while( (http.connected() || http.available()) && ((millis() - timeoutStart) < kNetworkTimeout)) {
+          if(http.available()) {
+            c = http.read();
+            Serial.print(c);
+
+            bodyLen--;
+            // We read something, reset the timeout counter
+            timeoutStart = millis();
+            
+          } else {
+              // We haven't got any data, so let's pause to allow some to
+              // arrive
+              delay(kNetworkDelay);
+          }
+        }
+      } else {
+        Serial.print("Failed to skip response headers: ");
+        Serial.println(err);
+      }
+    } else {
+      Serial.print("Getting response failed: ");
+      Serial.println(err);
+    }
   } else {
-    Serial.println("Connection failed");
+    Serial.print("Connection failed: ");
+    Serial.println(err);
   }
+  
+  Serial.println("disconnecting.");
+  http.stop();
 }
 
+/**
+ * Setup method
+ */
 void setup() {
  // Open serial communications and wait for port to open:
   Serial.begin(9600);
@@ -58,8 +111,6 @@ void setup() {
   pinMode(W5200_CS,OUTPUT);
   digitalWrite(W5200_CS,HIGH);
   
-//  pinMode(SDCARD_CS,OUTPUT);
-//  digitalWrite(SDCARD_CS,HIGH);//Deselect the SD card
   Serial.println("Starting SD...");
   if(!SD.begin(SDCARD_CS)) {
     Serial.println("failed.");
@@ -81,40 +132,13 @@ void setup() {
 
   Serial.print("My address is ");
   Serial.println(Ethernet.localIP());
-
-  getSunriseAndSunset();
-
-//  // if you get a connection, report back via serial:
-//  if (client.connect(googleIP, 80)) {
-//    Serial.println("connected");
-//    // Make a HTTP request:
-//    client.println("GET /search?q=arduino HTTP/1.0");
-//    client.println();
-//  } 
-//  else {
-//    // kf you didn't get a connection to the server:
-//    Serial.println("connection failed");
-//  }
 }
 
 void loop()
 {
-  // if there are incoming bytes available 
-  // from the server, read them and print them:
-  if (client.available()) {
-    Serial.println("client available");
-    char c = client.read();
-    Serial.print(c);
-  }
-
-  // if the server's disconnected, stop the client:
-  if (!client.connected()) {
-    Serial.println();
-    Serial.println("disconnecting.");
-    client.stop();
+  getSunriseSunsetHTTP();
 
     // do nothing forevermore:
     while(true);
-  }
 }
 
