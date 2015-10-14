@@ -1,1 +1,2 @@
-# A simple project to test hitting an endpoint with an arduino
+# WebClient_sunriseSunset
+A simple arduino sketch based on the WebClient example to test hitting an endpoint that calculates sunrise and sunset by day
