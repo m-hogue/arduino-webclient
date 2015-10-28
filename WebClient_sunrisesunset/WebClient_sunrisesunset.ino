@@ -25,6 +25,10 @@
 const int kNetworkTimeout = 30*1000;
 // Number of milliseconds to wait if no data is available before trying again
 const int kNetworkDelay = 1000;
+// Hour, Minute, Second of Sunrise CST
+int sunriseHour, sunriseMinute, sunriseSecond;
+// Hour, Minute, Second of Sunset CST
+int sunsetHour, sunsetMinute, sunsetSecond;
 
 // Enter a MAC address for your controller below.
 // Newer Ethernet shields have a MAC address printed on a sticker on the shield
@@ -95,7 +99,7 @@ void getSunriseSunsetHTTP(String results[]) {
               // we've not yet reached the json content.. Continue reading and build the body length.
               if(isdigit(c)) {
                 // leftshift digit and add c (i.e. if we had read 1 and are now reading c: 1*10 = 10 + c. If c was 3, then we'd have 13.)
-                bodyLen = bodyLen*10 + (c - '0');
+               int bodyLen = bodyLen*10 + (c - '0');
               }
               continue;
             }
@@ -174,7 +178,29 @@ void loop()
   // this array will hold the requested sunrise/sunset times.
   String results[2];
   getSunriseSunsetHTTP(results);
-  
+ 
+  //sunrise
+  String risetimeString = results[0];
+  int firstriseColon = risetimeString.indexOf(":");
+  int secondriseColon = risetimeString.lastIndexOf(":");
+  String risehourString = risetimeString.substring(0,firstriseColon);
+  String riseminString = risetimeString.substring(firstriseColon+1, secondriseColon);
+  String risesecString = risetimeString.substring(secondriseColon+1);
+  sunriseHour = risehourString.toInt()- 5;
+  sunriseMinute = riseminString.toInt();
+  sunriseSecond = risesecString.toInt();
+   
+  //sunset
+  String settimeString = results[1];
+  int firstsetColon = settimeString.indexOf(":");
+  int secondsetColon = settimeString.lastIndexOf(":");
+  String sethourString = settimeString.substring(0,firstsetColon);
+  String setminString = settimeString.substring(firstsetColon+1, secondsetColon);
+  String setsecString = settimeString.substring(secondsetColon+1);
+  sunsetHour = sethourString.toInt()- 5;
+  sunsetMinute = setminString.toInt();
+  sunsetSecond = setsecString.toInt();
+   
   Serial.print("result sunrise: ");
   Serial.println(results[0]);
   Serial.print("result sunset: ");
@@ -183,4 +209,10 @@ void loop()
     // do nothing forevermore:
     while(true);
 }
+
+/*************************************************
+Convert String to INT
+*************************************************/
+
+
 
